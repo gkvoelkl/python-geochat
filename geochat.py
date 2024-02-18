@@ -57,22 +57,19 @@ def load_data():
             temperature=0.1,
             model="gpt-3.5-turbo"
         )
-
-    llama_debug = LlamaDebugHandler(print_trace_on_end=True)
-    callback_manager = CallbackManager(handlers=[llama_debug])
     
     service_context = ServiceContext.from_defaults(
         llm=llm
     )
 
-    return sql_database, service_context, engine, llama_debug
+    return sql_database, service_context, engine
 
 
-sql_database, service_context, engine, llama_debug = load_data()
+sql_database, service_context, engine = load_data()
 
 # -- Sidebar
 def sidebar_infos(engine):
-    st.sidebar.image("logo.png",
+    st.sidebar.image("./img/logo.png",
                      width = 50,
                      use_column_width=None)
     

@@ -2,7 +2,7 @@
 
 gkvoelkl@nelson-games.de
 
-<img src="img/start.jpg" width="320" align="left"><br><br><br><br><br><br><br><br>
+<img src="img/start.jpg" width="320" align="left"><br><br><br><br><br><br><br><br><br><br><br><br>
 
 Normally, the data that makes up a **digital twin** is displayed in **3D**.
 This looks good but is not easy to use and understand.
@@ -24,17 +24,24 @@ it is relatively easy to create a **natural language interface** for a digital t
 
 My **first digital twin** consists of the **buildings of a large city** that I got **from OpenStreetMap**. These are stored in a **relational database (postgresql)**.
 
-<img src="img/db1.png" width="320" align="left"><br><br><br><br><br><br><br><br>
+<img src="img/db1.png" width="320" align="left"><br><br><br><br><br><br><br><br><br><br><br><br>
 
-An LLM turns the user's question into a suitable query to the database.
+An **LLM** turns the **user's question** into a suitable **query to the database**.
 And a suitable answer from the data received.
 
 Some examples:
 
+🤖 Chat: Ask me a question about the Database!
 
-```python
+👤 User: How many buildings?
 
-```
+🤖 Chat:There are a total of 931,866 buildings in the database.
+
+👤 User: I stand in Baker Street. Where is the next bank?
+
+🤖 Chatbot: The nearest bank to Baker Street is TSB located in London with the postcode W1U 7DL. It is right on Baker Street itself.
+
+<img src="img/chat1.png" width="320" align="left"><br><br><br><br><br><br><br><br><br><br><br><br>
 
 
 ```python
@@ -98,22 +105,19 @@ def load_data():
             temperature=0.1,
             model="gpt-3.5-turbo"
         )
-
-    llama_debug = LlamaDebugHandler(print_trace_on_end=True)
-    callback_manager = CallbackManager(handlers=[llama_debug])
     
     service_context = ServiceContext.from_defaults(
         llm=llm
     )
 
-    return sql_database, service_context, engine, llama_debug
+    return sql_database, service_context, engine
 
 
-sql_database, service_context, engine, llama_debug = load_data()
+sql_database, service_context, engine = load_data()
 
 # -- Sidebar
 def sidebar_infos(engine):
-    st.sidebar.image("logo.png",
+    st.sidebar.image("./img/logo.png",
                      width = 50,
                      use_column_width=None)
     
@@ -174,10 +178,25 @@ if st.session_state.messages[-1]["role"] != "assistant":
 
 ```
 
-    Writing geochat.py
+
+```python
+!streamlit run geochat.py
+```
+
+    [0m
+    [34m[1m  You can now view your Streamlit app in your browser.[0m
+    [0m
+    [34m  Local URL: [0m[1mhttp://localhost:8501[0m
+    [34m  Network URL: [0m[1mhttp://192.168.178.78:8501[0m
+    [0m
+    [34m[1m  For better performance, install the Watchdog module:[0m
+    
+      $ xcode-select --install
+      $ pip install watchdog
+                [0m
 
 
 
 ```python
-!streamlit run geochat.py
+
 ```
