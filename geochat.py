@@ -3,17 +3,20 @@ import streamlit as st
 from sqlalchemy import create_engine, MetaData
 from geoalchemy2 import Geometry
 
-from llama_index import SQLDatabase, ServiceContext
-from llama_index.llms import OpenAI
-from llama_index.indices.struct_store import NLSQLTableQueryEngine
-        
+from llama_index.core import SQLDatabase, Settings
+from llama_index.llms.openai import OpenAI
+from llama_index.llms.ollama import Ollama
+from llama_index.core.query_engine import NLSQLTableQueryEngine
+       
 import pandas
-from pprint import pprint
+
+USE_OPENAI = True
 
 # -- connect to openai
 import openai
 
-openai.api_key = st.secrets.openai_key
+if USE_OPENAI:
+    openai.api_key = st.secrets.openai_key
 
 # -- include tables
 include_tables = ["osm_buildings"]
@@ -47,25 +50,27 @@ def load_data():
             "osm_buildings": "stores all the buildings of a great city"
         }
 
+        if USE_OPENAI:
+            Settings.llm = OpenAI(
+                temperature=0.1,
+                model="gpt-3.5-turbo"
+            )
+        else:
+            Settings.llm = Ollama(
+                model="llama2", 
+                request_timeout=120.0
+            )
+            
         sql_database = SQLDatabase(
             engine, 
             include_tables=include_tables,
             custom_table_info = custom_table_info
         )
 
-        llm = OpenAI(
-            temperature=0.1,
-            model="gpt-3.5-turbo"
-        )
-    
-    service_context = ServiceContext.from_defaults(
-        llm=llm
-    )
-
-    return sql_database, service_context, engine
+    return sql_database, engine
 
 
-sql_database, service_context, engine = load_data()
+sql_database, engine = load_data()
 
 # -- Sidebar
 def sidebar_infos(engine):
@@ -102,7 +107,6 @@ sidebar_infos(engine)
 if "query_engine" not in st.session_state:
     st.session_state["query_engine"] = NLSQLTableQueryEngine(
         sql_database = sql_database,
-        service_context = service_context,
         #streaming=True
     )    
 

@@ -51,23 +51,27 @@ import streamlit as st
 from sqlalchemy import create_engine, MetaData
 from geoalchemy2 import Geometry
 
-from llama_index import SQLDatabase, ServiceContext
-from llama_index.llms import OpenAI
-from llama_index.indices.struct_store import NLSQLTableQueryEngine
-        
+from llama_index.core import SQLDatabase, Settings
+from llama_index.llms.openai import OpenAI
+from llama_index.llms.ollama import Ollama
+from llama_index.core.query_engine import NLSQLTableQueryEngine
+       
 import pandas
 from pprint import pprint
 
-# -- connect to openai
-import openai
+USE_OPENAI = True
 
-openai.api_key = st.secrets.openai_key
+if USE_OPENAI:
+    # -- connect to openai
+    import openai
+    openai.api_key = st.secrets.openai_key
 
 # -- include tables
 include_tables = ["osm_buildings"]
 
 # -- page config
 title = "GeoChat - Talk with your Data 💬 📚"
+
 st.set_page_config(
     page_title=title,
     layout="centered",
@@ -95,25 +99,27 @@ def load_data():
             "osm_buildings": "stores all the buildings of a great city"
         }
 
+        if USE_OPENAI:
+            Settings.llm = OpenAI(
+                temperature=0.1,
+                model="gpt-3.5-turbo"
+            )
+        else:
+            Settings.llm = Ollama(
+                model="llama2", 
+                request_timeout=120.0
+            )
+            
         sql_database = SQLDatabase(
             engine, 
             include_tables=include_tables,
             custom_table_info = custom_table_info
         )
 
-        llm = OpenAI(
-            temperature=0.1,
-            model="gpt-3.5-turbo"
-        )
-    
-    service_context = ServiceContext.from_defaults(
-        llm=llm
-    )
-
-    return sql_database, service_context, engine
+    return sql_database, engine
 
 
-sql_database, service_context, engine = load_data()
+sql_database, engine = load_data()
 
 # -- Sidebar
 def sidebar_infos(engine):
@@ -150,7 +156,6 @@ sidebar_infos(engine)
 if "query_engine" not in st.session_state:
     st.session_state["query_engine"] = NLSQLTableQueryEngine(
         sql_database = sql_database,
-        service_context = service_context,
         #streaming=True
     )    
 
@@ -178,23 +183,46 @@ if st.session_state.messages[-1]["role"] != "assistant":
 
 ```
 
+    Overwriting geochat.py
+
+
 
 ```python
 !streamlit run geochat.py
 ```
 
-    [0m
-    [34m[1m  You can now view your Streamlit app in your browser.[0m
-    [0m
-    [34m  Local URL: [0m[1mhttp://localhost:8501[0m
-    [34m  Network URL: [0m[1mhttp://192.168.178.78:8501[0m
-    [0m
-    [34m[1m  For better performance, install the Watchdog module:[0m
-    
-      $ xcode-select --install
-      $ pip install watchdog
-                [0m
+# Part 2: There is no Bakerstreet 🔍 in London! Challenges 🧩
 
+When you try to talk to your **digital twin**, you **don't** always get the **answers you expect**.
+
+🤖 Chat: Ask me a question about the Database!
+
+👤 User: How many buildings are in Bakerstreet?
+
+🤖 Chat: There are no buildings listed in the database for Bakerstreet.
+
+After many questions, it turned out that there are three basic challenges.
+
+### 🧩 Challenge 1️⃣: Values in Columns that are Difficult to Understand 
+
+The LLM cannot find "Bakerstreet" because it is not written the way it is written in the database ("Baker Street") - **different spellings**.
+
+The value range of an attribute is an important information for the LLM. Example: In a column the value “1” stands for "true" and “0” for "false". The meaning of the content is important for meaningful answers. - **different meanings**
+
+### 🧩 Challenge 2️⃣: Spatial Relationships and Connectivity between Real Things
+
+Geo databases have special features that are used by Digital Twins: **spatial query and spatial join**
+
+**spatial query** uses topological relationships betweeen objects "Which buildings touches the building in Baker Street 221b?"
+
+**spatial join** combines two datasets with rows being matched based on a desired topological relationship, rather than using a stored values as in a normal table join in a relational database.
+ "How many buildings are in the boundary of Westminster?"
+
+### 🧩 Challenge 3️⃣: Databases with Many Tables
+
+The **database of a digital twin** usually consists of **many tables**. Often there are **hundreds** or **thousands**. 
+
+Since the **query** to the LLM is **limited in size**, it is not possible to provide a description of all tables. The **LLM** therefore does not know **which tables are available**
 
 
 ```python
